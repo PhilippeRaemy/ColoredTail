@@ -63,11 +63,12 @@ namespace ConsoleHelpers
 
         public override ConsoleColorsBase InferColorFromText(string text)
         {
-            Func<int,int> colorComp = cmp =>
-                Encoding.Unicode.GetBytes(text)
-                    .Where((c,i)=>(i % 3)== cmp)
-                    .Sum(c=>c);
-            return SetColorRgb(colorComp(0) % 256, colorComp(1) % 256, colorComp(2) % 256);
+            var colorComponents = Encoding.Unicode.GetBytes(text)
+                .Select((c, i) => new { Component = i % 3, C = (int)c } )
+                .GroupBy(c => c.Component)
+                .Select(c => c.Sum( v => v.C ) % 256)
+                .ToArray();
+            return SetColorRgb(colorComponents[0], colorComponents[1] % 256, colorComponents[2] % 256);
         }
 
         public override ConsoleColorsBase SetColorRgb(int r, int g, int b)
