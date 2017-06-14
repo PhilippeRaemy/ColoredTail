@@ -80,7 +80,7 @@ namespace ConsoleHelpers
             var fgIndex = GetColorIndex(Console.ForegroundColor);
             var bgIndex = GetColorIndex(Console.BackgroundColor);
             screenInfo.ColorTable[bgIndex].SetColor(Color.FromArgb(r, g, b));
-            var f = (r + g + b) / 3 >= 128 ? 0 : 255;
+            var f = (r + g + b) / 3 >= 128 || g >= 192 ? 0 : 255;
             screenInfo.ColorTable[fgIndex].SetColor(Color.FromArgb(f, f, f));
             SetScreenBufferInfoEx(screenInfo);
             Console.ResetColor();
