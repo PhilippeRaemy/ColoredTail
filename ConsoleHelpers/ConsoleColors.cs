@@ -72,6 +72,9 @@ namespace ConsoleHelpers
         }
 
         public override ConsoleColorsBase SetColorRgb(int r, int g, int b)
+            => SetColorRgbImpl(r % 256, g % 256, b % 256);
+
+        ConsoleColorsBase SetColorRgbImpl(int r, int g, int b)
         {
             var screenInfo = GetScreenBufferInfoEx();
             var fgIndex = GetColorIndex(Console.ForegroundColor);
