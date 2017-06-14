@@ -13,7 +13,7 @@ namespace ColoredTitle
 //                cc.Swap();
 //                cc.Swap();
 //                Console.WriteLine(DateTime.Now);
-            Console.WriteLine(title);
+//            Console.WriteLine(title);
             Console.ResetColor();
         }
     }
