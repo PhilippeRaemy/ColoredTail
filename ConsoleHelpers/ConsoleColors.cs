@@ -14,14 +14,16 @@ namespace ConsoleHelpers
         public abstract void Dispose();
         public abstract ConsoleColorsBase InferColorFromText(string text);
         public abstract ConsoleColorsBase SetConsoleTitle(string text);
+        public abstract ConsoleColorsBase SetColorRgb(int r, int g, int b);
     }
 
     public class ConsoleNoColors : ConsoleColorsBase
     {
         public override ConsoleColorsBase Swap() => this;
         public override void Dispose(){}
-        public override ConsoleColorsBase InferColorFromText(string text) => this;
-        public override ConsoleColorsBase SetConsoleTitle(string text) => this;
+        public override ConsoleColorsBase InferColorFromText(string text)  => this;
+        public override ConsoleColorsBase SetConsoleTitle(string text)     => this;
+        public override ConsoleColorsBase SetColorRgb(int r, int g, int b) => this;
     }
 
     public class ConsoleColors : ConsoleColorsBase
@@ -65,15 +67,17 @@ namespace ConsoleHelpers
                 Encoding.Unicode.GetBytes(text)
                     .Where((c,i)=>(i % 3)== cmp)
                     .Sum(c=>c);
-            var r = colorComp(0) % 256;
-            var g = colorComp(1) % 256;
-            var b = colorComp(2) % 256;
+            return SetColorRgb(colorComp(0) % 256, colorComp(1) % 256, colorComp(2) % 256);
+        }
+
+        public override ConsoleColorsBase SetColorRgb(int r, int g, int b)
+        {
             var screenInfo = GetScreenBufferInfoEx();
             var fgIndex = GetColorIndex(Console.ForegroundColor);
             var bgIndex = GetColorIndex(Console.BackgroundColor);
             screenInfo.ColorTable[bgIndex].SetColor(Color.FromArgb(r, g, b));
-            var f = (r + g + b)/3 >= 128 ? 0 : 255;
-            screenInfo.ColorTable[fgIndex].SetColor(Color.FromArgb(f,f,f));
+            var f = (r + g + b) / 3 >= 128 ? 0 : 255;
+            screenInfo.ColorTable[fgIndex].SetColor(Color.FromArgb(f, f, f));
             SetScreenBufferInfoEx(screenInfo);
             Console.ResetColor();
             return Swap().Swap();
