@@ -2,7 +2,7 @@
 using System.Linq;
 using ConsoleHelpers;
 
-namespace ColoredTitle
+namespace ConsoleColor
 {
     static class Program
     {

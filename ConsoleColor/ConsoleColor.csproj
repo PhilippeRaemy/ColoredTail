@@ -7,8 +7,8 @@
     <ProjectGuid>{CCF0EF54-598F-4F69-96D2-434534F5310F}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ColoredTitle</RootNamespace>
-    <AssemblyName>ColoredTitle</AssemblyName>
+    <RootNamespace>ConsoleColor</RootNamespace>
+    <AssemblyName>ConsoleColor</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
