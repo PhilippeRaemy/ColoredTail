@@ -20,10 +20,22 @@ namespace Tail
     {
         static ConsoleColorsBase _consoleColors;
         static bool _nocolor;
-        static ConsoleColorsBase GetConsoleColor() => _nocolor ? (ConsoleColorsBase)new ConsoleNoColors() : new ConsoleColors();
+        static ConsoleColorsBase GetConsoleColor()
+        {
+            try
+            {
+                return _nocolor ? (ConsoleColorsBase) new ConsoleNoColors() : new ConsoleColors();
+            }
+            catch
+            {
+                _nocolor = true;
+                return new ConsoleNoColors();
+            }
+        }
 
         static void Main(string[] args)
         {
+            // Debugger.Launch();
             if (args.Length == 0)
             {
                 Console.WriteLine("Please specify a valid folder, file name or file pattern in the command line.");
