@@ -36,7 +36,9 @@ namespace Tail
         static void Main(string[] args)
         {
             // Debugger.Launch();
-            if (args.Length == 0)
+
+            var filePattern = args.FirstOrDefault(a => !a.StartsWith("--"));
+            if(filePattern == null)
             {
                 Console.WriteLine("Please specify a valid folder, file name or file pattern in the command line.");
                 return;
@@ -44,7 +46,8 @@ namespace Tail
 
             _nocolor = args.Any(a => a.Equals("--nocolors", StringComparison.InvariantCultureIgnoreCase));
             Console.CancelKeyPress += Console_CancelKeyPress;
-            var filename = args.Select(FindLastFileLike).FirstOrDefault();
+
+            var filename = FindLastFileLike(filePattern);
             if (filename == null)
             {
                 Console.WriteLine(new FileNotFoundException().Message);
