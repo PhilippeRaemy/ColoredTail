@@ -7,6 +7,7 @@ using ConsoleHelpers;
 namespace Tail
 {
     using System.Diagnostics;
+    using System.Text.RegularExpressions;
 
     enum FileStatus {Unknown, NotExist, Shrunk, Idle}
 
@@ -37,12 +38,27 @@ namespace Tail
         {
             // Debugger.Launch();
 
+            if(!args.Any() || args.Any(a => new[]{"/?", "-?", "-h", "--help", "-H", "--HELP" }.Contains(a)))
+            {
+                Console.WriteLine("Usage is Tail.exe filename [--nocolors] [--filter-regex=filter-regex] [--filter=filter-exact] [-i] [-v]");
+                return;
+            }
+
             var filePattern = args.FirstOrDefault(a => !a.StartsWith("--"));
             if(filePattern == null)
             {
                 Console.WriteLine("Please specify a valid folder, file name or file pattern in the command line.");
                 return;
             }
+
+            var filter = args.FirstOrDefault(a => !a.StartsWith("--filter="))?.Split(new[] { '=' }, 2).Skip(1).Single();
+            var filterRegex = args.FirstOrDefault(a => !a.StartsWith("--filter-regex="))?.Split(new []{'='}, 2).Skip(1).Single();
+            var writer = new Writer(
+                string.IsNullOrEmpty(filterRegex) ? filter : filterRegex,
+                args.Any(a => string.Equals(a, "--i")),
+                args.Any(a => string.Equals(a, "--v")),
+                !string.IsNullOrEmpty(filterRegex)
+            );
 
             _nocolor = args.Any(a => a.Equals("--nocolors", StringComparison.InvariantCultureIgnoreCase));
             Console.CancelKeyPress += Console_CancelKeyPress;
@@ -65,7 +81,7 @@ namespace Tail
                 {
                     try
                     {
-                        var newfileState = DoTail(filename, fileState);
+                        var newfileState = DoTail(filename, fileState, writer.Write);
                         if (fileState.Status != newfileState.Status)
                         {
 
@@ -132,7 +148,7 @@ namespace Tail
                 .FirstOrDefault();
         }
 
-        static FileState DoTail(string filename, FileState state)
+        static FileState DoTail(string filename, FileState state, Action<string> writer)
         {
             const int maxDataChunk = 1024 * 512; //1024 * 1024;
 
@@ -162,7 +178,7 @@ namespace Tail
                     var bytes = textReader.ReadBlock(buffer, 0, maxDataChunk);
                     if (bytes > bytesToBeSkipped)
                     {
-                        Console.Write(new string(buffer, bytesToBeSkipped, bytes - bytesToBeSkipped));
+                        writer(new string(buffer, bytesToBeSkipped, bytes - bytesToBeSkipped));
                     }
                     bytesToBeSkipped = bytesToBeSkipped > bytes ? bytesToBeSkipped - bytes : 0;
                     bytesRead += bytes;
@@ -171,6 +187,45 @@ namespace Tail
             state.Ptr = bytesRead;
             // Debug.Assert(fileInfo.Length >= state.Ptr);
             return state;
+        }
+    }
+
+    class Writer
+    {
+        readonly Regex _filterRegex;
+        readonly Regex _splitter = new Regex(@"(?'fullLines'.*)([\r\n]+)(?'lastLine'[^\r\n]*)$", RegexOptions.Singleline);
+        string _remains;
+
+        public Writer(string filter, bool caseInsentive, bool reverse, bool isRegex)
+        {
+            _filterRegex = new Regex(
+                reverse ? $"^(?!.*{filter}).*$" : $"^.*{filter}.*$", 
+                RegexOptions.CultureInvariant | RegexOptions.Multiline | 
+                (caseInsentive ? RegexOptions.IgnoreCase : RegexOptions.None)
+            );
+        }
+
+        public void Write(string buffer)
+        {
+            if (_filterRegex == null)
+            {
+                Console.Write(buffer);
+                return;
+            }
+
+            var split = _splitter.Match(_remains + buffer);
+            if (!split.Success)
+            {
+                _remains += buffer;
+                return;
+            }
+
+            foreach (Match line in _filterRegex.Matches(split.Groups["fullLines"].Value))
+            {
+                Console.WriteLine(line.Value);
+            }
+
+            _remains = split.Groups["lastLines"].Value;
         }
     }
 }
