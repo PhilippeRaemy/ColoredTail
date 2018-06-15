@@ -51,10 +51,11 @@ namespace Tail
                 return;
             }
 
-            var filter = args.FirstOrDefault(a => !a.StartsWith("--filter="))?.Split(new[] { '=' }, 2).Skip(1).Single();
-            var filterRegex = args.FirstOrDefault(a => !a.StartsWith("--filter-regex="))?.Split(new []{'='}, 2).Skip(1).Single();
+            var filter = args.FirstOrDefault(a => a.StartsWith("--filter="))?.Split(new[] { '=' }, 2).Skip(1).Single();
+            var filterRegex = args.FirstOrDefault(a => a.StartsWith("--filter-regex="))?.Split(new []{'='}, 2).Skip(1).Single();
+            var filterString = string.IsNullOrEmpty(filterRegex) ? filter : filterRegex;
             var writer = new Writer(
-                string.IsNullOrEmpty(filterRegex) ? filter : filterRegex,
+                filterString,
                 args.Any(a => string.Equals(a, "--i")),
                 args.Any(a => string.Equals(a, "--v")),
                 !string.IsNullOrEmpty(filterRegex)
@@ -70,8 +71,9 @@ namespace Tail
                 filename = args[0];
                 Console.WriteLine($"No valid folder, file name or file pattern in the command line. Waiting for {filename} to be created.");
             }
-            Console.Title = $"Tailing file {filename}";
-            Console.WriteLine($"Tailing file {filename}");
+            
+            Console.Title = $"Tailing file {filename}" + (string.IsNullOrWhiteSpace(filter) ? string.Empty : $" - {filterString}");
+            Console.WriteLine(Console.Title);
             using (var cColor = GetConsoleColor())
             {
                 _consoleColors = cColor; // keep a reference for use in the CancelKeyPress event, if ever...
@@ -198,6 +200,8 @@ namespace Tail
 
         public Writer(string filter, bool caseInsentive, bool reverse, bool isRegex)
         {
+            if (isRegex) filter = Regex.Replace(filter, @"[\#&\[\]\(\)\{\}\?\<\>\.\^\$\+\*\\]", ma => @"\\" + ma.Value);
+
             _filterRegex = new Regex(
                 reverse ? $"^(?!.*{filter}).*$" : $"^.*{filter}.*$", 
                 RegexOptions.CultureInvariant | RegexOptions.Multiline | 
