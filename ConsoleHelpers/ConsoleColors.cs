@@ -74,17 +74,84 @@ namespace ConsoleHelpers
         public override ConsoleColorsBase SetColorRgb(int r, int g, int b)
             => SetColorRgbImpl(r % 256, g % 256, b % 256);
 
+        static readonly Color[] DefaultColors = new[]
+        {
+            Color.FromArgb(0, 0, 0),
+            Color.FromArgb(0, 0, 128),
+            Color.FromArgb(0, 128, 0),
+            Color.FromArgb(128, 0, 0),
+            Color.FromArgb(0, 128, 128),
+            Color.FromArgb(128, 0, 128),
+            Color.FromArgb(128, 128, 0),
+            Color.FromArgb(196, 196, 196),
+            Color.FromArgb(128, 128, 128),
+            Color.FromArgb(0, 0, 255),
+            Color.FromArgb(0, 255, 0),
+            Color.FromArgb(255, 0, 0),
+            Color.FromArgb(0, 255, 255),
+            Color.FromArgb(255, 0, 255),
+            Color.FromArgb(255, 255, 0),
+            Color.FromArgb(255, 255, 255)
+        };
+
         ConsoleColorsBase SetColorRgbImpl(int r, int g, int b)
         {
-            var screenInfo = GetScreenBufferInfoEx();
-            var fgIndex = GetColorIndex(Console.ForegroundColor);
-            var bgIndex = GetColorIndex(Console.BackgroundColor);
-            screenInfo.ColorTable[bgIndex].SetColor(Color.FromArgb(r, g, b));
-            var f = (r + g + b) / 3 >= 128 || g >= 192 ? 0 : 255;
-            screenInfo.ColorTable[fgIndex].SetColor(Color.FromArgb(f, f, f));
-            SetScreenBufferInfoEx(screenInfo);
-            Console.ResetColor();
-            return Swap().Swap();
+            try
+            {
+                var screenInfo = GetScreenBufferInfoEx();
+                // var fgIndex = GetColorIndex(Console.ForegroundColor);
+                // var bgIndex = GetColorIndex(Console.BackgroundColor);
+                // screenInfo.ColorTable[bgIndex].SetColor(Color.FromArgb(r, g, b));
+                // var f = (r + g + b) / 3 >= 128 || g >= 192 ? 0 : 255;
+                // screenInfo.ColorTable[fgIndex].SetColor(Color.FromArgb(f, f, f));
+                var fromArgb = Color.FromArgb(r, g, b);
+                var baseColorHue = fromArgb.GetHue();
+                var baseColorSat = fromArgb.GetSaturation();
+                var baseColorLum = fromArgb.GetBrightness();
+                // Console.WriteLine($"SetColorRgbImpl({r},{g},{b}). Hue ={baseColorHue}");
+                for (var idx = 0; idx < 16; idx++)
+                {
+                    var fromHsl = ColorFromHsl(
+                        (int) (baseColorHue + 2 * idx * 22.5) % 360,
+                        /*0.25f + .75f **/ ((baseColorLum + idx / 16f) % 1),
+                        0.25f + .75f * ((baseColorSat + 5 * idx / 16f) % 1)
+                    );
+// 
+// 
+//                         Color.FromArgb(
+//                         (DefaultColors[idx].R /*+ r*/) % 256,
+//                         (DefaultColors[idx].G /*+ g*/) % 256,
+//                         (DefaultColors[idx].B /*+ b*/) % 256);
+                    screenInfo.ColorTable[idx].SetColor(fromHsl); // DefaultColors[idx]);
+                    // Console.WriteLine($"{idx}, ({DefaultColors[idx].R}=>{fromHsl.R},{DefaultColors[idx].G}=>{fromHsl.G},{DefaultColors[idx].B}=>{fromHsl.B}). Hue ={DefaultColors[idx].GetHue()}");
+                }
+
+                SetScreenBufferInfoEx(screenInfo);
+                Console.ResetColor();
+                return Swap().Swap();
+            }
+            catch(Exception e)
+            {
+                Console.Error.WriteLine(e);
+                return this;
+            }
+        }
+
+        Color ColorFromHsl(int hue, float sat, float lum)
+        {
+            var c = (1 - Math.Abs(2 * lum - 1)) * sat;
+            var x = c * (1 - Math.Abs((hue / 60) % 2 - 1));
+            var rgb = hue <= 060 ? Tuple.Create(c, x, 0f)
+                : hue <= 120 ? Tuple.Create(x, c, 0f)
+                : hue <= 180 ? Tuple.Create(0f, c, x)
+                : hue <= 240 ? Tuple.Create(0f, x, c)
+                : hue <= 300 ? Tuple.Create(x, 0f, c)
+                : hue <= 360 ? Tuple.Create(c, 0f, x)
+                : Tuple.Create(0f, 0f, 0f);
+            var m = lum - c / 2;
+            var colorFromHsl = Color.FromArgb((int)(255 * (rgb.Item1 + m)), (int)(255 * (rgb.Item2 + m)), (int)(255 * (rgb.Item3 + m)));
+            // Console.WriteLine($"ColorFromHsl({hue}, {sat}, {lum}) => [c={c}, x={x}, m={m}] => ({rgb.Item1:f3}, {rgb.Item2:f3}, {rgb.Item3:f3}) => ({colorFromHsl.R}, {colorFromHsl.G}, {colorFromHsl.B})");
+            return colorFromHsl;
         }
 
         public override ConsoleColorsBase SetConsoleTitle(string text)
