@@ -41,12 +41,13 @@ namespace ConsoleColor
             else if (SwitchExists("--default"))
             {
                 ConsoleColorsBase.GetConsoleColor().ResetDefaultColors();
+                Console.BackgroundColor = ConsoleColor.Black;
+                Console.ForegroundColor = ConsoleColor.Gray;
             }
             else
             {
                 SetColorFromTitle(SwitchExists("--setTitle"), args.Where(a => !a.StartsWith("--")).ToArray());
             }
-            Console.ResetColor();
             if (SwitchExists("--sample"))
             {
                 var fbg = Console.BackgroundColor;
@@ -64,6 +65,8 @@ namespace ConsoleColor
                 Console.BackgroundColor = fbg;
                 Console.ForegroundColor = ffg;
             }
+            if (!SwitchExists("--default"))
+                Console.ResetColor();
         }
 
         static void SetColorFromTitle(bool setTitle, string[] args)
