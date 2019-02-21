@@ -6,6 +6,7 @@ namespace ConsoleColor
 {
     using System.Collections.Generic;
     using System.Globalization;
+    using ConsoleColor = System.ConsoleColor;
 
     static class Program
     {
@@ -27,17 +28,42 @@ namespace ConsoleColor
                 Console.WriteLine(">ConsoleColor --setTitle");
                 Console.WriteLine(".. or, to set color from RGB components (must be integers)");
                 Console.WriteLine(">ConsoleColor --RGB r g b");
+                Console.WriteLine(".. or, to reset color to defaults");
+                Console.WriteLine(">ConsoleColor --default");
+                Console.WriteLine(".. to display a sample color table");
+                Console.WriteLine(">ConsoleColor --sample");
                 return;
             }
             if (SwitchExists("--rgb"))
             {
                 SetColorRgb(args);
             }
+            else if (SwitchExists("--default"))
+            {
+                ConsoleColorsBase.GetConsoleColor().ResetDefaultColors();
+            }
             else
             {
                 SetColorFromTitle(SwitchExists("--setTitle"), args.Where(a => !a.StartsWith("--")).ToArray());
             }
             Console.ResetColor();
+            if (SwitchExists("--sample"))
+            {
+                var fbg = Console.BackgroundColor;
+                var ffg = Console.ForegroundColor;
+                for (var bg = 0; bg < 16; bg++)
+                {
+                    Console.BackgroundColor = (ConsoleColor)bg;
+                    for (var fg = 0; fg < 16; fg++)
+                    {
+                        Console.ForegroundColor = (ConsoleColor)fg;
+                        Console.Write($" {bg:X}{fg:X}");
+                    }
+                    Console.WriteLine(" ");
+                }
+                Console.BackgroundColor = fbg;
+                Console.ForegroundColor = ffg;
+            }
         }
 
         static void SetColorFromTitle(bool setTitle, string[] args)
