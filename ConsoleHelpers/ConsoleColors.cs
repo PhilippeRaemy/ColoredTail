@@ -12,15 +12,32 @@ namespace ConsoleHelpers
         public abstract ConsoleColorsBase Swap();
 
         public abstract void Dispose();
+        public abstract ConsoleColorsBase ResetDefaultColors();
         public abstract ConsoleColorsBase InferColorFromText(string text);
         public abstract ConsoleColorsBase SetConsoleTitle(string text);
         public abstract ConsoleColorsBase SetColorRgb(int r, int g, int b);
+
+        static bool _noColor;
+        public static ConsoleColorsBase GetConsoleColor()
+        {
+            try
+            {
+                return _noColor ? (ConsoleColorsBase) new ConsoleNoColors() : new ConsoleColors();
+            }
+            catch
+            {
+                _noColor = true;
+                return new ConsoleNoColors();
+            }
+        }
     }
 
-    public class ConsoleNoColors : ConsoleColorsBase
+    class ConsoleNoColors : ConsoleColorsBase
     {
+        protected internal ConsoleNoColors(){}
         public override ConsoleColorsBase Swap() => this;
         public override void Dispose(){}
+        public override ConsoleColorsBase ResetDefaultColors() => this;
         public override ConsoleColorsBase InferColorFromText(string text)  => this;
         public override ConsoleColorsBase SetConsoleTitle(string text)     => this;
         public override ConsoleColorsBase SetColorRgb(int r, int g, int b) => this;
@@ -32,7 +49,7 @@ namespace ConsoleHelpers
         readonly ConsoleColor _backgroundColor;
         readonly CONSOLE_SCREEN_BUFFER_INFO_EX _consoleScreenBufferInfoEx;
 
-        public ConsoleColors()
+        protected internal ConsoleColors()
         {
             _foregroundColor = Console.ForegroundColor;
             _backgroundColor = Console.BackgroundColor;
@@ -94,47 +111,41 @@ namespace ConsoleHelpers
             Color.FromArgb(255, 255, 255)
         };
 
-        ConsoleColorsBase SetColorRgbImpl(int r, int g, int b)
+        public override ConsoleColorsBase ResetDefaultColors() => SetConsoleColors(DefaultColors);
+
+        ConsoleColorsBase SetConsoleColors(Color[] colorTable)
         {
             try
             {
                 var screenInfo = GetScreenBufferInfoEx();
-                // var fgIndex = GetColorIndex(Console.ForegroundColor);
-                // var bgIndex = GetColorIndex(Console.BackgroundColor);
-                // screenInfo.ColorTable[bgIndex].SetColor(Color.FromArgb(r, g, b));
-                // var f = (r + g + b) / 3 >= 128 || g >= 192 ? 0 : 255;
-                // screenInfo.ColorTable[fgIndex].SetColor(Color.FromArgb(f, f, f));
-                var fromArgb = Color.FromArgb(r, g, b);
-                var baseColorHue = fromArgb.GetHue();
-                var baseColorSat = fromArgb.GetSaturation();
-                var baseColorLum = fromArgb.GetBrightness();
-                // Console.WriteLine($"SetColorRgbImpl({r},{g},{b}). Hue ={baseColorHue}");
                 for (var idx = 0; idx < 16; idx++)
                 {
-                    var fromHsl = ColorFromHsl(
-                        (int) (baseColorHue + 2 * idx * 22.5) % 360,
-                        /*0.25f + .75f **/ ((baseColorLum + idx / 16f) % 1),
-                        0.25f + .75f * ((baseColorSat + 5 * idx / 16f) % 1)
-                    );
-// 
-// 
-//                         Color.FromArgb(
-//                         (DefaultColors[idx].R /*+ r*/) % 256,
-//                         (DefaultColors[idx].G /*+ g*/) % 256,
-//                         (DefaultColors[idx].B /*+ b*/) % 256);
-                    screenInfo.ColorTable[idx].SetColor(fromHsl); // DefaultColors[idx]);
-                    // Console.WriteLine($"{idx}, ({DefaultColors[idx].R}=>{fromHsl.R},{DefaultColors[idx].G}=>{fromHsl.G},{DefaultColors[idx].B}=>{fromHsl.B}). Hue ={DefaultColors[idx].GetHue()}");
+                    screenInfo.ColorTable[idx].SetColor(colorTable[idx]);
                 }
-
                 SetScreenBufferInfoEx(screenInfo);
                 Console.ResetColor();
                 return Swap().Swap();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.Error.WriteLine(e);
                 return this;
             }
+        }
+
+        ConsoleColorsBase SetColorRgbImpl(int r, int g, int b)
+        {
+            var fromArgb = Color.FromArgb(r, g, b);
+            var baseColorHue = fromArgb.GetHue();
+            var baseColorSat = fromArgb.GetSaturation();
+            var baseColorLum = fromArgb.GetBrightness();
+            // Console.WriteLine($"SetColorRgbImpl({r},{g},{b}). Hue ={baseColorHue}");
+            return SetConsoleColors(
+                Enumerable.Range(0, 16).Select(idx => ColorFromHsl(
+                    (int) (baseColorHue + 2 * idx * 45) % 360,
+                    ((idx < 8 ? baseColorLum : baseColorLum + .5f) + idx / 8f) % 1,
+                    0.25f + .75f * ((baseColorSat + 5 * idx / 16f) % 1)
+                )).ToArray());
         }
 
         Color ColorFromHsl(int hue, float sat, float lum)
@@ -185,5 +196,6 @@ namespace ConsoleHelpers
                 Console.Out.WriteLine($"Call to API failed and set error code {Marshal.GetLastWin32Error()}");
             }
         }
+
     }
 }

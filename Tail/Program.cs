@@ -21,18 +21,6 @@ namespace Tail
     {
         static ConsoleColorsBase _consoleColors;
         static bool _nocolor;
-        static ConsoleColorsBase GetConsoleColor()
-        {
-            try
-            {
-                return _nocolor ? (ConsoleColorsBase) new ConsoleNoColors() : new ConsoleColors();
-            }
-            catch
-            {
-                _nocolor = true;
-                return new ConsoleNoColors();
-            }
-        }
 
         static void Main(string[] args)
         {
@@ -74,7 +62,7 @@ namespace Tail
             
             Console.Title = $"Tailing file {filename}" + (string.IsNullOrWhiteSpace(filter) ? string.Empty : $" - {filterString}");
             Console.WriteLine(Console.Title);
-            using (var cColor = GetConsoleColor())
+            using (var cColor = ConsoleColorsBase.GetConsoleColor())
             {
                 _consoleColors = cColor; // keep a reference for use in the CancelKeyPress event, if ever...
                 cColor.InferColorFromText(Console.Title);
@@ -91,11 +79,11 @@ namespace Tail
                             switch (newfileState.Status)
                             {
                                 case FileStatus.NotExist:
-                                    using (new ConsoleColors().Swap())
+                                    using (cColor.Swap())
                                         Console.WriteLine($"Waiting for {filename} to be created.");
                                     break;
                                 case FileStatus.Shrunk:
-                                    using (new ConsoleColors().Swap())
+                                    using (cColor.Swap())
                                         Console.WriteLine($"Restarting {filename}.");
                                     break;
                                 case FileStatus.Unknown:
@@ -124,7 +112,7 @@ namespace Tail
 
         static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
-            using (GetConsoleColor().Swap())
+            using (ConsoleColorsBase.GetConsoleColor().Swap())
             {
                 Console.WriteLine();
                 Console.WriteLine("Done.");

@@ -43,7 +43,7 @@ namespace ConsoleColor
         static void SetColorFromTitle(bool setTitle, string[] args)
         {
             var title = args.Any() ? string.Join(" ", args) : Console.Title;
-            var consoleColor = new ConsoleColors().InferColorFromText(title);
+            ConsoleColorsBase.GetConsoleColor().InferColorFromText(title);
             if (setTitle)
             {
                 Console.Title = title;
@@ -62,7 +62,7 @@ namespace ConsoleColor
                 .Concat(new[] {0, 0, 0})
                 .Take(3)
                 .ToArray();
-            new ConsoleColors().SetColorRgb(colors[0], colors[1], colors[2]);
+            ConsoleColorsBase.GetConsoleColor().SetColorRgb(colors[0], colors[1], colors[2]);
         }
     }
 }
