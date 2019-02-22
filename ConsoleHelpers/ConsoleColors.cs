@@ -7,6 +7,8 @@ using ConsoleClassLibrary;
 
 namespace ConsoleHelpers
 {
+    using System.Collections.Generic;
+
     public abstract class ConsoleColorsBase : IDisposable
     {
         public abstract ConsoleColorsBase Swap();
@@ -113,6 +115,31 @@ namespace ConsoleHelpers
 
         public override ConsoleColorsBase ResetDefaultColors() => SetConsoleColors(DefaultColors);
 
+        double DistanceRgb(Color a, Color b) => Math.Sqrt(
+            Math.Pow(a.A - b.A, 2) +
+            Math.Pow(a.R - b.R, 2) +
+            Math.Pow(a.G - b.G, 2) +
+            Math.Pow(a.B - b.B, 2));
+
+        Color[] CheckConsoleColors(IEnumerable<Color> colorTable)
+        {
+            var cols = colorTable as Color[] ?? colorTable.ToArray();
+            var bg = cols[(int)Console.BackgroundColor];
+            for (var c = 0; c < cols.Length; c++)
+                if (c != (int) Console.BackgroundColor)
+                {
+                    var distanceRgb = DistanceRgb(bg, cols[c]);
+                    // Console.WriteLine($"{c}: |{bg} - {cols[c]}| = {distanceRgb}");
+                    if (distanceRgb < 75)
+                        cols[c] = Color.FromArgb(
+                            (cols[c].R + 128) % 256, 
+                            (cols[c].G + 128) % 256, 
+                            (cols[c].B + 128) % 256);
+                }
+
+            return cols;
+        }
+
         ConsoleColorsBase SetConsoleColors(Color[] colorTable)
         {
             try
@@ -141,11 +168,11 @@ namespace ConsoleHelpers
             var baseColorLum = fromArgb.GetBrightness();
             // Console.WriteLine($"SetColorRgbImpl({r},{g},{b}). Hue ={baseColorHue}");
             return SetConsoleColors(
-                Enumerable.Range(0, 16).Select(idx => ColorFromHsl(
+                CheckConsoleColors(Enumerable.Range(0, 16).Select(idx => ColorFromHsl(
                     (int) (baseColorHue + 2 * idx * 45) % 360,
                     ((idx < 8 ? baseColorLum : baseColorLum + .5f) + idx / 8f) % 1,
                     0.25f + .75f * ((baseColorSat + 5 * idx / 16f) % 1)
-                )).ToArray());
+                ))));
         }
 
         Color ColorFromHsl(int hue, float sat, float lum)
