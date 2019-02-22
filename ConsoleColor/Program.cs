@@ -44,7 +44,7 @@ namespace ConsoleColor
                 Console.BackgroundColor = ConsoleColor.Black;
                 Console.ForegroundColor = ConsoleColor.Gray;
             }
-            else
+            else if (!SwitchExists("--sample"))
             {
                 SetColorFromTitle(SwitchExists("--setTitle"), args.Where(a => !a.StartsWith("--")).ToArray());
             }
