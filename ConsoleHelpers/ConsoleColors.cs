@@ -129,8 +129,8 @@ namespace ConsoleHelpers
                 if (c != (int) Console.BackgroundColor)
                 {
                     var distanceRgb = DistanceRgb(bg, cols[c]);
-                    // Console.WriteLine($"{c}: |{bg} - {cols[c]}| = {distanceRgb}");
-                    if (distanceRgb < 75)
+                    //Console.WriteLine($"{c}: |{bg} - {cols[c]}| = {distanceRgb}");
+                    if (distanceRgb < 100)
                         cols[c] = Color.FromArgb(
                             (cols[c].R + 128) % 256, 
                             (cols[c].G + 128) % 256, 
