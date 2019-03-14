@@ -37,6 +37,8 @@ namespace ConsoleColor
             if (SwitchExists("--rgb"))
             {
                 SetColorRgb(args);
+                Console.BackgroundColor = ConsoleColor.Black;
+                Console.ForegroundColor = ConsoleColor.Gray;
             }
             else if (SwitchExists("--default"))
             {
@@ -47,6 +49,8 @@ namespace ConsoleColor
             else if (!SwitchExists("--sample"))
             {
                 SetColorFromTitle(SwitchExists("--setTitle"), args.Where(a => !a.StartsWith("--")).ToArray());
+                Console.BackgroundColor = ConsoleColor.Black;
+                Console.ForegroundColor = ConsoleColor.Gray;
             }
             if (SwitchExists("--sample"))
             {
