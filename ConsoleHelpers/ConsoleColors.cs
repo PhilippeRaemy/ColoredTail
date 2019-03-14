@@ -8,6 +8,7 @@ using ConsoleClassLibrary;
 namespace ConsoleHelpers
 {
     using System.Collections.Generic;
+    using System.Diagnostics;
 
     public abstract class ConsoleColorsBase : IDisposable
     {
@@ -87,7 +88,8 @@ namespace ConsoleHelpers
                 .GroupBy(c => c.Component)
                 .Select(c => c.Sum( v => v.C ) % 256)
                 .ToArray();
-            return SetColorRgb(colorComponents[0], colorComponents[1] % 256, colorComponents[2] % 256);
+            Trace.WriteLine($"RGB({colorComponents[0]}, {colorComponents[1]}, {colorComponents[2]})");
+            return SetColorRgb(colorComponents[0], colorComponents[1], colorComponents[2]);
         }
 
         public override ConsoleColorsBase SetColorRgb(int r, int g, int b)
@@ -115,12 +117,6 @@ namespace ConsoleHelpers
 
         public override ConsoleColorsBase ResetDefaultColors() => SetConsoleColors(DefaultColors);
 
-        double DistanceRgb(Color a, Color b) => Math.Sqrt(
-            Math.Pow(a.A - b.A, 2) +
-            Math.Pow(a.R - b.R, 2) +
-            Math.Pow(a.G - b.G, 2) +
-            Math.Pow(a.B - b.B, 2));
-
         Color[] CheckConsoleColors(IEnumerable<Color> colorTable)
         {
             var cols = colorTable as Color[] ?? colorTable.ToArray();
@@ -128,13 +124,17 @@ namespace ConsoleHelpers
             for (var c = 0; c < cols.Length; c++)
                 if (c != (int) Console.BackgroundColor)
                 {
-                    var distanceRgb = DistanceRgb(bg, cols[c]);
-                    //Console.WriteLine($"{c}: |{bg} - {cols[c]}| = {distanceRgb}");
-                    if (distanceRgb < 100)
+                    var distanceHsl = bg.DistanceHsl(cols[c]);
+                    Trace.Write($@"{c}: |{bg} - {cols[c]}| = {distanceHsl:f}. 
+                         Hue distance:|{bg.GetHue()} - {cols[c].GetHue()}| = {bg.GetHueDistance(cols[c]):f}
+                         Brightness  :|{bg.GetBrightness():f} - {cols[c].GetBrightness():f}| = {Math.Abs(bg.GetBrightness() - cols[c].GetBrightness()):f}
+                         Saturation  :|{bg.GetSaturation():f} - {cols[c].GetSaturation():f}| = {Math.Abs(bg.GetSaturation() - cols[c].GetSaturation()):f}");
+                    if (distanceHsl < 0.5)
                         cols[c] = Color.FromArgb(
-                            (cols[c].R + 128) % 256, 
+                            (cols[c].R + 128) % 256,
                             (cols[c].G + 128) % 256, 
                             (cols[c].B + 128) % 256);
+                    Trace.WriteLine($" ==> {bg.DistanceHsl(cols[c]):f}. Hue distance:|{bg.GetHue()} - {cols[c].GetHue()}| = {bg.GetHueDistance(cols[c]):f}");
                 }
 
             return cols;
@@ -166,13 +166,17 @@ namespace ConsoleHelpers
             var baseColorHue = fromArgb.GetHue();
             var baseColorSat = fromArgb.GetSaturation();
             var baseColorLum = fromArgb.GetBrightness();
-            // Console.WriteLine($"SetColorRgbImpl({r},{g},{b}). Hue ={baseColorHue}");
+            Trace.WriteLine($"SetColorRgbImpl({r},{g},{b}). Hue ={baseColorHue}");
             return SetConsoleColors(
-                CheckConsoleColors(Enumerable.Range(0, 16).Select(idx => ColorFromHsl(
-                    (int) (baseColorHue + 2 * idx * 45) % 360,
-                    ((idx < 8 ? baseColorLum : baseColorLum + .5f) + idx / 8f) % 1,
-                    0.25f + .75f * ((baseColorSat + 5 * idx / 16f) % 1)
-                ))));
+                CheckConsoleColors(Enumerable.Range(0, 16)
+                    .Select(idx =>
+                        idx == 0
+                            ? fromArgb
+                            : ColorFromHsl(
+                                (int) (baseColorHue + 2 * idx * 45) % 360,
+                                ((idx < 8 ? baseColorLum : baseColorLum + .5f) + idx / 8f) % 1,
+                                0.25f + .75f * ((baseColorSat + 5 * idx / 16f) % 1)
+                            ))));
         }
 
         Color ColorFromHsl(int hue, float sat, float lum)
@@ -188,7 +192,7 @@ namespace ConsoleHelpers
                 : Tuple.Create(0f, 0f, 0f);
             var m = lum - c / 2;
             var colorFromHsl = Color.FromArgb((int)(255 * (rgb.Item1 + m)), (int)(255 * (rgb.Item2 + m)), (int)(255 * (rgb.Item3 + m)));
-            // Console.WriteLine($"ColorFromHsl({hue}, {sat}, {lum}) => [c={c}, x={x}, m={m}] => ({rgb.Item1:f3}, {rgb.Item2:f3}, {rgb.Item3:f3}) => ({colorFromHsl.R}, {colorFromHsl.G}, {colorFromHsl.B})");
+            Trace.WriteLine($"ColorFromHsl({hue}, {sat}, {lum}) => [c={c}, x={x}, m={m}] => ({rgb.Item1:f3}, {rgb.Item2:f3}, {rgb.Item3:f3}) => ({colorFromHsl.R}, {colorFromHsl.G}, {colorFromHsl.B})");
             return colorFromHsl;
         }
 
@@ -223,6 +227,36 @@ namespace ConsoleHelpers
                 Console.Out.WriteLine($"Call to API failed and set error code {Marshal.GetLastWin32Error()}");
             }
         }
+    }
+
+    public static class ColorExtensions
+    {
+        public static double GetHueDistance(this Color a, Color b)
+        {
+            var diff = Math.Abs(a.GetHue() - b.GetHue());
+            return new[] {360 - diff, diff}.Min() / 180;
+        }
+
+        static double Sq(double d) => d * d;
+
+        public static double DistanceRgb(this Color a, Color b) => Math.Sqrt(
+            Sq(a.A - b.A) +
+            Sq(a.R - b.R) +
+            Sq(a.G - b.G) +
+            Sq(a.B - b.B));
+
+        public static double DistanceHsl(this Color a, Color b) => Math.Pow(
+            a.GetHueDistance(b)
+            * a.GetSaturation() 
+            * b.GetSaturation()
+            * a.GetBrightness() 
+            * b.GetBrightness(), 0.2);
+
+        public static double EuclidianDistanceHsl(this Color a, Color b) => Math.Sqrt(
+            Sq(a.GetHueDistance(b) / 2) +
+            Sq(a.GetSaturation() - b.GetSaturation()) +
+            Sq(a.GetBrightness() - b.GetBrightness()));
 
     }
+
 }
