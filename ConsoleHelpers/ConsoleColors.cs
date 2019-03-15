@@ -33,6 +33,8 @@ namespace ConsoleHelpers
                 return new ConsoleNoColors();
             }
         }
+
+        public static bool Trace { get; set; }
     }
 
     class ConsoleNoColors : ConsoleColorsBase
@@ -88,7 +90,7 @@ namespace ConsoleHelpers
                 .GroupBy(c => c.Component)
                 .Select(c => c.Sum( v => v.C ) % 256)
                 .ToArray();
-            Trace.WriteLine($"RGB({colorComponents[0]}, {colorComponents[1]}, {colorComponents[2]})");
+            if(Trace) Console.WriteLine($"RGB({colorComponents[0]}, {colorComponents[1]}, {colorComponents[2]})");
             return SetColorRgb(colorComponents[0], colorComponents[1], colorComponents[2]);
         }
 
@@ -125,7 +127,7 @@ namespace ConsoleHelpers
                 if (c != (int) Console.BackgroundColor)
                 {
                     var distanceHsl = bg.DistanceHsl(cols[c]);
-                    Trace.Write($@"{c}: |{bg} - {cols[c]}| = {distanceHsl:f}. 
+                    if(Trace) Console.Write($@"{c}: |{bg} - {cols[c]}| = {distanceHsl:f}. 
                          Hue distance:|{bg.GetHue()} - {cols[c].GetHue()}| = {bg.GetHueDistance(cols[c]):f}
                          Brightness  :|{bg.GetBrightness():f} - {cols[c].GetBrightness():f}| = {Math.Abs(bg.GetBrightness() - cols[c].GetBrightness()):f}
                          Saturation  :|{bg.GetSaturation():f} - {cols[c].GetSaturation():f}| = {Math.Abs(bg.GetSaturation() - cols[c].GetSaturation()):f}");
@@ -134,7 +136,7 @@ namespace ConsoleHelpers
                             (cols[c].R + 128) % 256,
                             (cols[c].G + 128) % 256, 
                             (cols[c].B + 128) % 256);
-                    Trace.WriteLine($" ==> {bg.DistanceHsl(cols[c]):f}. Hue distance:|{bg.GetHue()} - {cols[c].GetHue()}| = {bg.GetHueDistance(cols[c]):f}");
+                    if(Trace) Console.WriteLine($" ==> {bg.DistanceHsl(cols[c]):f}. Hue distance:|{bg.GetHue()} - {cols[c].GetHue()}| = {bg.GetHueDistance(cols[c]):f}");
                 }
 
             return cols;
@@ -166,7 +168,7 @@ namespace ConsoleHelpers
             var baseColorHue = fromArgb.GetHue();
             var baseColorSat = fromArgb.GetSaturation();
             var baseColorLum = fromArgb.GetBrightness();
-            Trace.WriteLine($"SetColorRgbImpl({r},{g},{b}). Hue ={baseColorHue}");
+            if(Trace) Console.WriteLine($"SetColorRgbImpl({r},{g},{b}). Hue ={baseColorHue}");
             return SetConsoleColors(
                 CheckConsoleColors(Enumerable.Range(0, 16)
                     .Select(idx =>
@@ -192,7 +194,7 @@ namespace ConsoleHelpers
                 : Tuple.Create(0f, 0f, 0f);
             var m = lum - c / 2;
             var colorFromHsl = Color.FromArgb((int)(255 * (rgb.Item1 + m)), (int)(255 * (rgb.Item2 + m)), (int)(255 * (rgb.Item3 + m)));
-            Trace.WriteLine($"ColorFromHsl({hue}, {sat}, {lum}) => [c={c}, x={x}, m={m}] => ({rgb.Item1:f3}, {rgb.Item2:f3}, {rgb.Item3:f3}) => ({colorFromHsl.R}, {colorFromHsl.G}, {colorFromHsl.B})");
+            if(Trace) Console.WriteLine($"ColorFromHsl({hue}, {sat}, {lum}) => [c={c}, x={x}, m={m}] => ({rgb.Item1:f3}, {rgb.Item2:f3}, {rgb.Item3:f3}) => ({colorFromHsl.R}, {colorFromHsl.G}, {colorFromHsl.B})");
             return colorFromHsl;
         }
 
@@ -246,11 +248,10 @@ namespace ConsoleHelpers
             Sq(a.B - b.B));
 
         public static double DistanceHsl(this Color a, Color b) => Math.Pow(
-            a.GetHueDistance(b)
-            * a.GetSaturation() 
-            * b.GetSaturation()
-            * a.GetBrightness() 
-            * b.GetBrightness(), 0.2);
+            a.GetHueDistance(b) / 2
+            * Sq(a.GetSaturation() - b.GetSaturation())
+            * Sq(a.GetBrightness() - b.GetBrightness()), 
+            0.333);
 
         public static double EuclidianDistanceHsl(this Color a, Color b) => Math.Sqrt(
             Sq(a.GetHueDistance(b) / 2) +

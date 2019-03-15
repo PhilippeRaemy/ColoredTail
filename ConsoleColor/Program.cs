@@ -34,6 +34,8 @@ namespace ConsoleColor
                 Console.WriteLine(">ConsoleColor --sample");
                 return;
             }
+
+            if (SwitchExists("--trace")) ConsoleColorsBase.Trace = true;
             if (SwitchExists("--rgb"))
             {
                 SetColorRgb(args);
