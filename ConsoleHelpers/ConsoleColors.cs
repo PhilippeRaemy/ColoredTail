@@ -127,16 +127,41 @@ namespace ConsoleHelpers
                 if (c != (int) Console.BackgroundColor)
                 {
                     var distanceHsl = bg.DistanceHsl(cols[c]);
-                    if(Trace) Console.Write($@"{c}: |{bg} - {cols[c]}| = {distanceHsl:f}. 
+                    // minimal recommended contrast ratio is 4.5, or 3 for larger font-sizes
+                    var contrast = bg.Contrast(cols[c]);
+                    if(Trace) Console.WriteLine($@"{c}: |{bg} - {cols[c]}| = {distanceHsl:f}. 
                          Hue distance:|{bg.GetHue()} - {cols[c].GetHue()}| = {bg.GetHueDistance(cols[c]):f}
                          Brightness  :|{bg.GetBrightness():f} - {cols[c].GetBrightness():f}| = {Math.Abs(bg.GetBrightness() - cols[c].GetBrightness()):f}
                          Saturation  :|{bg.GetSaturation():f} - {cols[c].GetSaturation():f}| = {Math.Abs(bg.GetSaturation() - cols[c].GetSaturation()):f}");
-                    if (distanceHsl < 0.5)
-                        cols[c] = Color.FromArgb(
-                            (cols[c].R + 128) % 256,
-                            (cols[c].G + 128) % 256, 
-                            (cols[c].B + 128) % 256);
-                    if(Trace) Console.WriteLine($" ==> {bg.DistanceHsl(cols[c]):f}. Hue distance:|{bg.GetHue()} - {cols[c].GetHue()}| = {bg.GetHueDistance(cols[c]):f}");
+                    if (Math.Abs(Math.Log10(contrast)) < .5)
+                        // if (distanceHsl < 0.5)
+                    {
+                        foreach (var newcol in
+                            from r in new[] {0, 64, 128, 196}
+                            from g in new[] {0, 64, 128, 196}
+                            from b in new[] {0, 64, 128, 196}
+                            select Color.FromArgb(
+                                (cols[c].R + r) % 256,
+                                (cols[c].G + g) % 256,
+                                (cols[c].B + b) % 256)
+                        )
+                        {
+                            if(Trace) Console.WriteLine($"{bg} vs {newcol}: contrast is {bg.Contrast(newcol)}, log: {Math.Abs(Math.Log10(bg.Contrast(newcol)))}");
+                            if (Math.Abs(Math.Log10(bg.Contrast(newcol))) > .5)
+                            {
+                                if (Trace)
+                                    Console.WriteLine($" ==> Change {cols[c]} to {newcol}.");
+                                cols[c] = newcol;
+                                break;
+                            }
+                        }
+                        if (Trace && Math.Abs(Math.Log10(bg.Contrast(cols[c]))) < .5) Console.WriteLine("No better color found");
+                    }
+
+                    if (Trace) Console.WriteLine($" ==> {distanceHsl:f}. " +
+                                                $"Hue distance:|{bg.GetHue():f} - {cols[c].GetHue():f}| = {bg.GetHueDistance(cols[c]):f}. " +
+                                                $"Luminance = |{bg.Luminance():f} - {cols[c].Luminance():f}|," +
+                                                $"Contrast = {contrast:f} => {bg.Contrast(cols[c]):f}");
                 }
 
             return cols;
@@ -258,6 +283,21 @@ namespace ConsoleHelpers
             Sq(a.GetSaturation() - b.GetSaturation()) +
             Sq(a.GetBrightness() - b.GetBrightness()));
 
+        /* https://stackoverflow.com/questions/9733288/how-to-programmatically-calculate-the-contrast-ratio-between-two-colors */
+        public static double Luminance(this Color c) => 
+            new []{c.R, c.G, c.B}
+                .Select(v => v/255.0)
+                .Select(v => v <= 0.03928
+                        ? v / 12.92
+                        : Math.Pow((v + 0.055) / 1.055, 2.4)
+                )
+                .Zip(new [] { 0.2126, 0.7152, 0.0722 }, (a, f) => a * f)
+                .Sum();
+
+        public static double Contrast(this Color a, Color b) 
+            => (a.Luminance() + 0.005)
+             / (b.Luminance() + 0.005);
     }
 
 }
+ 
