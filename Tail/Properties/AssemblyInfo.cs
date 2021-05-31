@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Tail")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("https://github.com/PhilippeRaemy/ColoredTail.git")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Raemy Lalive & Co")]
+[assembly: AssemblyCompany("PhilippeRaemy")]
 [assembly: AssemblyProduct("Tail")]
-[assembly: AssemblyCopyright("Copyright © Raemy Lalive & Co 2017")]
+[assembly: AssemblyCopyright("Copyright © PhilippeRaemy 2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
